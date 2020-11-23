@@ -1,0 +1,3 @@
+include ':floating_video'
+include ':app'
+rootProject.name = "Demo"
