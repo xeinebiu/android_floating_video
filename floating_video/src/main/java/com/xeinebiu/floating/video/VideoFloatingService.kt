@@ -26,10 +26,8 @@ import com.xeinebiu.floating.video.view.XFrameLayout
 class VideoFloatingService : Service(), VideoListener {
     private var viewBinding: LayoutPlayer1Binding? = null
     private var floatingRef: FloatingRef? = null
-
-    private val player: SimpleExoPlayer by lazy {
-        SimpleExoPlayer.Builder(this).build()
-    }
+    private var customMediaSourceFactory: CustomMediaSourceFactory? = null
+    private var player: SimpleExoPlayer? = null
 
     override fun onBind(intent: Intent): IBinder? = null
 
@@ -41,9 +39,29 @@ class VideoFloatingService : Service(), VideoListener {
         )
 
         LayoutInflater.from(this).also { inflater ->
-            viewBinding = LayoutPlayer1Binding.inflate(inflater).also {
-                it.player.player = player
-                player.addVideoListener(this)
+            viewBinding = LayoutPlayer1Binding.inflate(inflater).also { view ->
+
+                // create custom media source factory
+                val cmsf = (CustomMediaSourceFactory(this) { mediaItem ->
+                    mediaItem.playbackProperties!!.tag as Stream
+                }).also { c -> customMediaSourceFactory = c }
+
+                // create player
+                val p = SimpleExoPlayer.Builder(this)
+                    .setMediaSourceFactory(cmsf)
+                    .build()
+                    .also { simpleExoPlayer ->
+                        player = simpleExoPlayer
+                    }
+                view.player.player = p
+                p.addVideoListener(this)
+
+                // stop service when stop button is clicked
+                view.stopBtn.setOnClickListener { stopService() }
+
+                view.player.setControllerVisibilityListener { visibility ->
+                    view.stopBtn.visibility = visibility
+                }
             }
         }
     }
@@ -57,7 +75,7 @@ class VideoFloatingService : Service(), VideoListener {
     }
 
     override fun onDestroy() {
-        player.release()
+        player?.release()
         viewBinding?.let {
             val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             windowManager.removeView(it.root)
@@ -79,9 +97,16 @@ class VideoFloatingService : Service(), VideoListener {
         fRef.updateView()
     }
 
+    private fun stopService() {
+        stopForeground(true)
+        stopSelf()
+    }
+
     private fun play(streams: List<Stream>) {
-        val sources = streams.map { MediaItem.fromUri(it.uri) }
-        this.player.let {
+        val sources = streams.map {
+            MediaItem.Builder().setUri(it.uri).setTag(it).build()
+        }
+        this.player?.let {
             it.stop(true)
             it.setMediaItems(sources)
             it.prepare()
