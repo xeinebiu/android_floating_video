@@ -17,7 +17,7 @@ Add it in your root build.gradle at the end of repositories:
 Step 2. Add the dependency
 
 	dependencies {
-            implementation 'com.github.xeinebiu:android_view_changelog:1.1.2'
+            implementation 'com.github.xeinebiu:android_floating_video:1.0.0'
 	}
 
 ---
