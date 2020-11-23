@@ -69,7 +69,9 @@ class VideoFloatingService : Service(), VideoListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val item = intent?.extras?.get(EXTRA_ITEM) as VideoItem? ?: return START_STICKY
 
-        floatingRef = showPopupWindow(this, viewBinding!!.root)
+        if (floatingRef == null)
+            floatingRef = showPopupWindow(this, viewBinding!!.root)
+
         play(item.streams)
         return START_STICKY
     }

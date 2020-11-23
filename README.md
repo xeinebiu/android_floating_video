@@ -59,3 +59,11 @@ Before you use the service, make sure your application is granted Overlay access
         VideoItem("demo", listOf(stream))
    )
 ```
+
+### Change logs
+    1.0.2
+        - Fix: Service crashes when is already running and another stream is provided
+    1.0.1
+        - Support custom headers for each Stream
+    1.0.0
+        - Initial Release
