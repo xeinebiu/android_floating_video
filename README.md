@@ -1,6 +1,7 @@
 ## Floating Video Player
 This library uses Exo Player as Video Player with ability to use it on a Floating window.
 
+![](./docs/preview.png)
 ---
 ### Installation
 Step 1. 
