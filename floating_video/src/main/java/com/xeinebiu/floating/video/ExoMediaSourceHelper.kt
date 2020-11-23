@@ -4,40 +4,46 @@ import android.content.Context
 import android.net.Uri
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.drm.DrmSessionManager
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
-import com.google.android.exoplayer2.source.MediaSource
-import com.google.android.exoplayer2.source.MediaSourceFactory
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
+import com.google.android.exoplayer2.source.*
 import com.google.android.exoplayer2.source.dash.DashMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource
-import com.google.android.exoplayer2.upstream.*
+import com.google.android.exoplayer2.upstream.DataSource
+import com.google.android.exoplayer2.upstream.DefaultDataSource
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.util.Util
 import com.xeinebiu.floating.video.model.Stream
+import com.xeinebiu.floating.video.model.Subtitle
 
-class CustomMediaSourceFactory(
+internal class ExoMediaSourceHelper(
     private val context: Context,
     private val streamRetriever: (MediaItem) -> Stream
-) : MediaSourceFactory {
-    private val defaultMediaSource = DefaultMediaSourceFactory(context)
+) {
+    fun createMergingMediaSource(
+        items: List<MediaItem>,
+        subtitles: List<Subtitle>
+    ): MergingMediaSource {
+        val sources = mutableListOf<MediaSource>()
 
-    override fun setDrmSessionManager(drmSessionManager: DrmSessionManager?): MediaSourceFactory =
-        defaultMediaSource.setDrmSessionManager(drmSessionManager)
+        items.forEach {
+            sources.add(createMediaSource(it))
+        }
+        subtitles.forEach {
+            val dataSource = buildDataSourceFactory(context, it.headers)
+            val s = MediaItem.Subtitle(
+                it.uri,
+                it.mime,  // The mime type. Must be set correctly.
+                it.language,  // The subtitle language. May be null.
+                C.SELECTION_FLAG_DEFAULT // Selection flags for the track.
+            )
+            sources.add(
+                SingleSampleMediaSource.Factory(dataSource).createMediaSource(s, C.TIME_UNSET)
+            )
+        }
+        return MergingMediaSource(*sources.toTypedArray())
+    }
 
-    override fun setDrmHttpDataSourceFactory(drmHttpDataSourceFactory: HttpDataSource.Factory?): MediaSourceFactory =
-        defaultMediaSource.setDrmHttpDataSourceFactory(drmHttpDataSourceFactory)
-
-    override fun setDrmUserAgent(userAgent: String?): MediaSourceFactory =
-        defaultMediaSource.setDrmUserAgent(userAgent)
-
-    override fun setLoadErrorHandlingPolicy(loadErrorHandlingPolicy: LoadErrorHandlingPolicy?): MediaSourceFactory =
-        defaultMediaSource.setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
-
-    override fun getSupportedTypes(): IntArray =
-        defaultMediaSource.supportedTypes
-
-    override fun createMediaSource(mediaItem: MediaItem): MediaSource {
+    private fun createMediaSource(mediaItem: MediaItem): MediaSource {
         val stream = streamRetriever(mediaItem)
         val dataSource = buildDataSourceFactory(context, stream.headers)
         val factory = buildMediaSourceFactory(dataSource, stream.uri)

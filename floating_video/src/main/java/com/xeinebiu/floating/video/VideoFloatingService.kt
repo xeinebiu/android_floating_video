@@ -20,13 +20,13 @@ import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.video.VideoListener
 import com.xeinebiu.floating.video.databinding.LayoutPlayer1Binding
 import com.xeinebiu.floating.video.model.Stream
+import com.xeinebiu.floating.video.model.Subtitle
 import com.xeinebiu.floating.video.model.VideoItem
 import com.xeinebiu.floating.video.view.XFrameLayout
 
 class VideoFloatingService : Service(), VideoListener {
     private var viewBinding: LayoutPlayer1Binding? = null
     private var floatingRef: FloatingRef? = null
-    private var customMediaSourceFactory: CustomMediaSourceFactory? = null
     private var player: SimpleExoPlayer? = null
 
     override fun onBind(intent: Intent): IBinder? = null
@@ -41,14 +41,8 @@ class VideoFloatingService : Service(), VideoListener {
         LayoutInflater.from(this).also { inflater ->
             viewBinding = LayoutPlayer1Binding.inflate(inflater).also { view ->
 
-                // create custom media source factory
-                val cmsf = (CustomMediaSourceFactory(this) { mediaItem ->
-                    mediaItem.playbackProperties!!.tag as Stream
-                }).also { c -> customMediaSourceFactory = c }
-
                 // create player
                 val p = SimpleExoPlayer.Builder(this)
-                    .setMediaSourceFactory(cmsf)
                     .build()
                     .also { simpleExoPlayer ->
                         player = simpleExoPlayer
@@ -72,7 +66,7 @@ class VideoFloatingService : Service(), VideoListener {
         if (floatingRef == null)
             floatingRef = showPopupWindow(this, viewBinding!!.root)
 
-        play(item.streams)
+        play(item.streams, item.subtitles)
         return START_STICKY
     }
 
@@ -104,13 +98,23 @@ class VideoFloatingService : Service(), VideoListener {
         stopSelf()
     }
 
-    private fun play(streams: List<Stream>) {
-        val sources = streams.map {
+    private fun play(
+        streams: List<Stream>,
+        subtitles: List<Subtitle>
+    ) {
+        val cmsf = (ExoMediaSourceHelper(this) { mediaItem ->
+            mediaItem.playbackProperties!!.tag as Stream
+        })
+        val mediaItems = streams.map {
             MediaItem.Builder().setUri(it.uri).setTag(it).build()
         }
+        val mediaSource = cmsf.createMergingMediaSource(
+            mediaItems,
+            subtitles
+        )
         this.player?.let {
             it.stop(true)
-            it.setMediaItems(sources)
+            it.setMediaSource(mediaSource)
             it.prepare()
             it.playWhenReady = true
         }

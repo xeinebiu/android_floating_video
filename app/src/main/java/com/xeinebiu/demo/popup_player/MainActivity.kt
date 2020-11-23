@@ -8,6 +8,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.xeinebiu.floating.video.VideoFloatingService
 import com.xeinebiu.floating.video.model.Stream
+import com.xeinebiu.floating.video.model.Subtitle
 import com.xeinebiu.floating.video.model.VideoItem
 
 class MainActivity : AppCompatActivity() {
@@ -29,12 +30,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         val stream = Stream(
-            Uri.parse("https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4"),
+            Uri.parse("https://thepaciellogroup.github.io/AT-browser-tests/video/ElephantsDream.mp4"),
+            HashMap()
+        )
+        val subtitle = Subtitle(
+            Uri.parse("https://thepaciellogroup.github.io/AT-browser-tests/video/subtitles-en.vtt"),
+            "text/vtt",
+            "English",
             HashMap()
         )
         VideoFloatingService.play(
             this,
-            VideoItem("demo", listOf(stream))
+            VideoItem("demo", listOf(stream), listOf(subtitle))
         )
     }
 

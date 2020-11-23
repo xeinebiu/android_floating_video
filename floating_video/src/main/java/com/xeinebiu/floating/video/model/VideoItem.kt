@@ -6,13 +6,18 @@ import android.os.Parcelable
 
 data class VideoItem(
     val id: String,
-    val streams: List<Stream>
+    val streams: List<Stream>,
+    val subtitles: List<Subtitle>
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
         parcel.readString()!!,
         mutableListOf<Stream>().let {
             parcel.readTypedList(it, Stream.CREATOR)
+            it
+        },
+        mutableListOf<Subtitle>().let {
+            parcel.readTypedList(it, Subtitle.CREATOR)
             it
         }
     )
@@ -25,6 +30,7 @@ data class VideoItem(
     ) {
         dest.writeString(id)
         dest.writeTypedList(streams)
+        dest.writeTypedList(subtitles)
     }
 
     companion object CREATOR : Parcelable.Creator<VideoItem> {
