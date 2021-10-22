@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <androidx.appcompat.widget.AppCompatImageButton
+    <ImageButton
         android:id="@+id/stopBtn"
         android:layout_width="32dp"
         android:layout_height="32dp"
@@ -18,4 +18,5 @@
         android:background="@color/exo_black_opacity_70"
         android:src="@drawable/exo_icon_stop"
         android:tint="@color/exo_white" />
+
 </com.xeinebiu.floating.video.view.XFrameLayout>

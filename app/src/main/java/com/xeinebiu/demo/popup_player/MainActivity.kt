@@ -12,8 +12,10 @@ import com.xeinebiu.floating.video.model.Subtitle
 import com.xeinebiu.floating.video.model.VideoItem
 
 class MainActivity : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
     }
 
@@ -33,12 +35,14 @@ class MainActivity : AppCompatActivity() {
             Uri.parse("https://thepaciellogroup.github.io/AT-browser-tests/video/ElephantsDream.mp4"),
             HashMap()
         )
+
         val subtitle = Subtitle(
             Uri.parse("https://thepaciellogroup.github.io/AT-browser-tests/video/subtitles-en.vtt"),
             "text/vtt",
             "English",
             HashMap()
         )
+
         VideoFloatingService.play(
             this,
             VideoItem("demo", listOf(stream), listOf(subtitle))

@@ -16,66 +16,85 @@ import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.video.VideoListener
 import com.xeinebiu.floating.video.databinding.LayoutPlayer1Binding
 import com.xeinebiu.floating.video.model.Stream
 import com.xeinebiu.floating.video.model.Subtitle
 import com.xeinebiu.floating.video.model.VideoItem
 import com.xeinebiu.floating.video.view.XFrameLayout
 
-class VideoFloatingService : Service(), VideoListener {
-    private var viewBinding: LayoutPlayer1Binding? = null
+class VideoFloatingService : Service(), Player.Listener {
+
+    private val viewBinding: LayoutPlayer1Binding by lazy {
+        val inflater = LayoutInflater.from(this)
+        LayoutPlayer1Binding.inflate(inflater)
+    }
+
     private var floatingRef: FloatingRef? = null
-    private var player: SimpleExoPlayer? = null
+
+    private val player: SimpleExoPlayer by lazy {
+        SimpleExoPlayer.Builder(this).build()
+    }
+
+    private val windowManager: WindowManager
+        get() = getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+
         startForeground(
             SERVICE_CODE,
             createNotification().build()
         )
 
-        LayoutInflater.from(this).also { inflater ->
-            viewBinding = LayoutPlayer1Binding.inflate(inflater).also { view ->
+        setPlayer(viewBinding)
 
-                // create player
-                val p = SimpleExoPlayer.Builder(this)
-                    .build()
-                    .also { simpleExoPlayer ->
-                        player = simpleExoPlayer
-                    }
-                view.player.player = p
-                p.addVideoListener(this)
+        initListeners(viewBinding)
+    }
 
-                // stop service when stop button is clicked
-                view.stopBtn.setOnClickListener { stopService() }
+    private fun initListeners(view: LayoutPlayer1Binding) {
+        view.stopBtn.setOnClickListener { stopService() }
 
-                view.player.setControllerVisibilityListener { visibility ->
-                    view.stopBtn.visibility = visibility
-                }
-            }
+        view.player.setControllerVisibilityListener { visibility ->
+            view.stopBtn.visibility = visibility
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    private fun setPlayer(view: LayoutPlayer1Binding) {
+        view.player.player = player
+
+        player.addListener(this)
+    }
+
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
         val item = intent?.extras?.get(EXTRA_ITEM) as VideoItem? ?: return START_STICKY
 
-        if (floatingRef == null)
-            floatingRef = showPopupWindow(this, viewBinding!!.root)
+        if (floatingRef == null) floatingRef = showPopupWindow(
+            context = this,
+            windowManager = windowManager,
+            container = viewBinding.root
+        )
 
-        play(item.streams, item.subtitles)
+        play(
+            streams = item.streams,
+            subtitles = item.subtitles
+        )
+
         return START_STICKY
     }
 
     override fun onDestroy() {
-        player?.release()
-        viewBinding?.let {
-            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            windowManager.removeView(it.root)
-        }
+        player.release()
+
+        windowManager.removeView(viewBinding.root)
+
         super.onDestroy()
     }
 
@@ -102,32 +121,39 @@ class VideoFloatingService : Service(), VideoListener {
         streams: List<Stream>,
         subtitles: List<Subtitle>
     ) {
-        val cmsf = (ExoMediaSourceHelper(this) { mediaItem ->
-            mediaItem.playbackProperties!!.tag as Stream
+        val exoMediaSourceHelper = (ExoMediaSourceHelper(context = this) { mediaItem ->
+            mediaItem.playbackProperties?.tag as Stream
         })
-        val mediaItems = streams.map {
-            MediaItem.Builder().setUri(it.uri).setTag(it).build()
+
+        val mediaItems = streams.map { stream ->
+            MediaItem.Builder().setUri(stream.uri).setTag(stream).build()
         }
-        val mediaSource = cmsf.createMergingMediaSource(
+
+        val mediaSource = exoMediaSourceHelper.createMergingMediaSource(
             mediaItems,
             subtitles
         )
-        this.player?.let {
-            it.stop(true)
+
+        player.let {
+            it.stop()
             it.setMediaSource(mediaSource)
             it.prepare()
+
             it.playWhenReady = true
         }
     }
 
     private fun createNotification(): NotificationCompat.Builder {
-        val notificationManager: NotificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(
+            Context.NOTIFICATION_SERVICE
+        ) as NotificationManager
+
         val builder = NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
             .setContentTitle(SERVICE_TITLE)
             .setSmallIcon(R.drawable.exo_notification_small_icon)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setGroup(SERVICE_CHANNEL_ID)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 SERVICE_CHANNEL_ID,
@@ -135,37 +161,91 @@ class VideoFloatingService : Service(), VideoListener {
                 NotificationManager.IMPORTANCE_DEFAULT
             )
             channel.setSound(null, null)
+
             notificationManager.createNotificationChannel(channel)
+
             builder.setChannelId(SERVICE_CHANNEL_ID)
         }
+
         return builder
     }
 
-    private data class FloatingRef(
-        val windowManager: WindowManager,
-        val container: XFrameLayout,
+    private class FloatingRef(
+        private val windowManager: WindowManager,
+        private val container: XFrameLayout,
         val params: WindowManager.LayoutParams
     ) {
-        fun updateView() {
-            windowManager.updateViewLayout(container, params)
-        }
+        fun updateView(): Unit = windowManager.updateViewLayout(container, params)
     }
 
     companion object {
         private const val SERVICE_CHANNEL_ID = "Floating Video"
+
         private const val SERVICE_TITLE = "Popup Player"
+
         private const val SERVICE_CODE = 30004
+
         private const val EXTRA_ITEM = "extra_item"
+
         private const val MAX_WIDTH_DP = 350
         private const val MAX_HEIGHT_DP = 196
 
         fun play(
             context: Context,
-            item: VideoItem
+            videoItem: VideoItem
         ) {
-            val intent = Intent(context, VideoFloatingService::class.java)
-            intent.putExtra(EXTRA_ITEM, item)
+            val intent = Intent(context, VideoFloatingService::class.java).also {
+                it.putExtra(EXTRA_ITEM, videoItem)
+            }
+
             ContextCompat.startForegroundService(context, intent)
+        }
+
+        private fun showPopupWindow(
+            context: Context,
+            windowManager: WindowManager,
+            container: XFrameLayout
+        ): FloatingRef {
+            val layoutFlag = getWindowLayoutFlag()
+
+            val params = createPopupWindowLayoutParams(
+                context = context,
+                layoutFlag = layoutFlag
+            )
+
+            makeDraggable(
+                windowManager = windowManager,
+                containerView = container,
+                params = params
+            )
+
+            windowManager.addView(container, params)
+
+            return FloatingRef(
+                windowManager = windowManager,
+                container = container,
+                params = params
+            )
+        }
+
+        private fun getWindowLayoutFlag() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        private fun createPopupWindowLayoutParams(
+            context: Context,
+            layoutFlag: Int
+        ): WindowManager.LayoutParams = WindowManager.LayoutParams(
+            convertDpToPixel(context, MAX_WIDTH_DP).toInt(),
+            convertDpToPixel(context, MAX_HEIGHT_DP).toInt(),
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            x = 0
+            y = 100
         }
 
         @SuppressLint("ClickableViewAccessibility")
@@ -176,61 +256,34 @@ class VideoFloatingService : Service(), VideoListener {
         ) {
             var initialTouchX = 0f
             var initialTouchY = 0f
+
             var initialX = 0
             var initialY = 0
+
             containerView.dispatchTouchListener = { event ->
                 when (event?.action) {
+
                     MotionEvent.ACTION_DOWN -> {
                         initialX = params.x
                         initialY = params.y
+
                         initialTouchX = event.rawX
                         initialTouchY = event.rawY
                     }
-                    MotionEvent.ACTION_UP -> {
-                    }
+
+                    MotionEvent.ACTION_UP -> Unit
+
                     MotionEvent.ACTION_MOVE -> {
                         params.x = initialX + (event.rawX - initialTouchX).toInt()
                         params.y = initialY + (event.rawY - initialTouchY).toInt()
+
                         windowManager.updateViewLayout(containerView, params)
                     }
                 }
             }
         }
 
-        private fun showPopupWindow(
-            context: Context,
-            container: XFrameLayout
-        ): FloatingRef {
-            val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                WindowManager.LayoutParams.TYPE_PHONE
-
-            val params = WindowManager.LayoutParams(
-                convertDpToPixel(context, MAX_WIDTH_DP).toInt(),
-                convertDpToPixel(context, MAX_HEIGHT_DP).toInt(),
-                layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-            )
-            params.x = 0
-            params.y = 100
-
-            val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            makeDraggable(windowManager, container, params)
-            windowManager.addView(container, params)
-
-            return FloatingRef(
-                windowManager,
-                container,
-                params
-            )
-        }
-
-        private fun convertDpToPixel(
-            context: Context,
-            dp: Int
-        ): Float =
+        private fun convertDpToPixel(context: Context, dp: Int): Float =
             dp * (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
     }
 }

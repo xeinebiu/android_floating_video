@@ -9,7 +9,9 @@ class XFrameLayout : FrameLayout {
     var dispatchTouchListener: ((ev: MotionEvent?) -> Unit)? = null
 
     constructor(context: Context) : super(context)
+
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(
         context,
         attrs,
@@ -25,6 +27,7 @@ class XFrameLayout : FrameLayout {
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         dispatchTouchListener?.invoke(ev)
+
         return super.dispatchTouchEvent(ev)
     }
 }

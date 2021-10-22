@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.xeinebiu.floating.video">
 
-    /
+    <application>
+        <service
+            android:name="com.xeinebiu.floating.video.VideoFloatingService"
+            android:enabled="true"
+            android:label="Floating Video"
+            android:process=":floating_video" />
+    </application>
 </manifest>
