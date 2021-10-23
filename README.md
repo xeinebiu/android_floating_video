@@ -61,8 +61,8 @@ Before you use the service, make sure your application is granted Overlay access
 ```
 
 ### Change logs
-    1.2.0
-    	- Bug fixes & improvements
+    1.2.1
+        - Bug fixes & improvements
     1.1.0
         - Support Subtitles
     1.0.2
