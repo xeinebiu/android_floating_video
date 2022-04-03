@@ -15,9 +15,10 @@ import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.video.VideoSize
 import com.xeinebiu.floating.video.databinding.LayoutPlayer1Binding
 import com.xeinebiu.floating.video.model.Stream
 import com.xeinebiu.floating.video.model.Subtitle
@@ -33,8 +34,8 @@ class VideoFloatingService : Service(), Player.Listener {
 
     private var floatingRef: FloatingRef? = null
 
-    private val player: SimpleExoPlayer by lazy {
-        SimpleExoPlayer.Builder(this).build()
+    private val player: ExoPlayer by lazy {
+        ExoPlayer.Builder(this).build()
     }
 
     private val windowManager: WindowManager
@@ -98,20 +99,14 @@ class VideoFloatingService : Service(), Player.Listener {
         super.onDestroy()
     }
 
-    override fun onVideoSizeChanged(
-        width: Int,
-        height: Int,
-        unappliedRotationDegrees: Int,
-        pixelWidthHeightRatio: Float
-    ) {
+    override fun onVideoSizeChanged(videoSize: VideoSize) {
         val fRef = floatingRef ?: return
 
         // @ref {https://eikhart.com/blog/aspect-ratio-calculator}
-        val aspectRatio = width.toFloat() / height
+        val aspectRatio = videoSize.width.toFloat() / videoSize.height
         fRef.params.height = (fRef.params.width / aspectRatio).toInt()
         fRef.updateView()
     }
-
     private fun stopService() {
         stopForeground(true)
         stopSelf()
@@ -122,7 +117,7 @@ class VideoFloatingService : Service(), Player.Listener {
         subtitles: List<Subtitle>
     ) {
         val exoMediaSourceHelper = (ExoMediaSourceHelper(context = this) { mediaItem ->
-            mediaItem.playbackProperties?.tag as Stream
+            mediaItem.localConfiguration?.tag as Stream
         })
 
         val mediaItems = streams.map { stream ->

@@ -5,7 +5,6 @@ import android.net.Uri
 import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.MediaSource
-import com.google.android.exoplayer2.source.MediaSourceFactory
 import com.google.android.exoplayer2.source.MergingMediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.source.SingleSampleMediaSource
@@ -44,12 +43,11 @@ internal class ExoMediaSourceHelper(
             headers = it.headers
         )
 
-        val subtitle = MediaItem.Subtitle(
-            it.uri,
-            it.mime,  // The mime type. Must be set correctly.
-            it.language,  // The subtitle language. May be null.
-            C.SELECTION_FLAG_DEFAULT // Selection flags for the track.
-        )
+        val subtitle = MediaItem.SubtitleConfiguration.Builder(it.uri)
+            .setMimeType(it.mime)
+            .setLanguage(it.language)
+            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+            .build()
 
         SingleSampleMediaSource.Factory(dataSource)
             .createMediaSource(subtitle, C.TIME_UNSET)
@@ -85,7 +83,7 @@ internal class ExoMediaSourceHelper(
     private fun buildMediaSourceFactory(
         factory: DataSource.Factory,
         uri: Uri
-    ): MediaSourceFactory = when (val type = Util.inferContentType(uri)) {
+    ): MediaSource.Factory = when (val type = Util.inferContentType(uri)) {
         C.TYPE_SS -> SsMediaSource.Factory(factory)
 
         C.TYPE_DASH -> DashMediaSource.Factory(factory)
