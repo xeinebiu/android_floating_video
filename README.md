@@ -23,37 +23,7 @@ Step 2. Add the dependency
 	dependencies {
             implementation 'com.github.xeinebiu:android_floating_video:1.4.0'
 	}
-
 ---
-
-#### Register Service
-
-````xml
-
-<service android:name="com.xeinebiu.floating.video.VideoFloatingService" android:enabled="true"
-    android:label="Floating Video" />
-````
-
----
-
-#### Overlay Permissions
-
-Before you use the service, make sure your application is granted Overlay access.
-
-```kotlin
-    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
-    return // stop here, since devices with Android OS lower than M do not support screen overlay
-}
-
-if (!Settings.canDrawOverlays(this)) {
-    val intent = Intent(
-        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-        Uri.parse("package:$packageName")
-    )
-    startActivityForResult(intent, PERMISSION_DRAW_OVER_OTHER_APP)
-    return
-}
-```
 
 ---
 
@@ -61,7 +31,7 @@ if (!Settings.canDrawOverlays(this)) {
 
 ```kotlin
     val stream = Stream(
-    Uri.parse("https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4"),
+    Uri.parse("video url here"),
     HashMap()
 )
 VideoFloatingService.play(
