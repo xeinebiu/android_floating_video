@@ -7,5 +7,5 @@ import kotlinx.android.parcel.Parcelize
 data class VideoItem(
     val id: String,
     val streams: List<Stream>,
-    val subtitles: List<Subtitle>
+    val subtitles: List<Subtitle>,
 ) : Parcelable

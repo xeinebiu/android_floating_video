@@ -43,13 +43,16 @@ internal class ExoMediaSourceHelper(
             headers = it.headers
         )
 
-        val subtitle = MediaItem.SubtitleConfiguration.Builder(it.uri)
+        val subtitle = MediaItem
+            .SubtitleConfiguration
+            .Builder(it.uri)
             .setMimeType(it.mime)
             .setLanguage(it.language)
             .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
             .build()
 
-        SingleSampleMediaSource.Factory(dataSource)
+        SingleSampleMediaSource
+            .Factory(dataSource)
             .createMediaSource(subtitle, C.TIME_UNSET)
     }
 
@@ -65,11 +68,11 @@ internal class ExoMediaSourceHelper(
 
     private fun buildDataSourceFactory(
         context: Context,
-        headers: Map<String, String>?,
+        headers: Map<String, String>?
     ): () -> DefaultDataSource {
         return {
-            val defaultHttpDataSource = DefaultHttpDataSource.Factory()
-                .setUserAgent(USER_AGENT)
+            val defaultHttpDataSource = DefaultHttpDataSource
+                .Factory()
                 .createDataSource()
 
             headers?.let {
@@ -92,11 +95,6 @@ internal class ExoMediaSourceHelper(
 
         C.TYPE_OTHER -> ProgressiveMediaSource.Factory(factory)
 
-        else -> throw IllegalStateException("Unsupported Content Type: $type");
-    }
-
-    companion object {
-        private const val USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36"
+        else -> throw IllegalStateException("Unsupported Content Type: $type")
     }
 }

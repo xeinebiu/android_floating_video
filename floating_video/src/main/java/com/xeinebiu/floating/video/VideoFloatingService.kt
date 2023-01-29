@@ -9,7 +9,6 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
-import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -18,8 +17,11 @@ import androidx.core.content.ContextCompat
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.video.VideoSize
-import com.xeinebiu.floating.video.databinding.LayoutPlayer1Binding
+import com.xeinebiu.floating.R
+import com.xeinebiu.floating.databinding.LayoutPlayer1Binding
 import com.xeinebiu.floating.video.model.Stream
 import com.xeinebiu.floating.video.model.Subtitle
 import com.xeinebiu.floating.video.model.VideoItem
@@ -34,8 +36,29 @@ class VideoFloatingService : Service(), Player.Listener {
 
     private var floatingRef: FloatingRef? = null
 
+    private val exoMediaSourceHelper by lazy {
+        ExoMediaSourceHelper(context = this) { mediaItem ->
+            mediaItem.localConfiguration?.tag as Stream
+        }
+    }
+
     private val player: ExoPlayer by lazy {
-        ExoPlayer.Builder(this).build()
+        val maxWidth = resources.getDimension(R.dimen.floating_video_max_window_width).toInt()
+        val maxHeight = resources.getDimension(R.dimen.floating_video_max_window_height).toInt()
+
+        val trackSelector = DefaultTrackSelector(
+            this,
+            DefaultTrackSelector
+                .Parameters
+                .Builder(this)
+                .setMaxVideoSize(maxWidth, maxHeight)
+                .build()
+        )
+
+        ExoPlayer
+            .Builder(this)
+            .setTrackSelector(trackSelector)
+            .build()
     }
 
     private val windowManager: WindowManager
@@ -59,9 +82,11 @@ class VideoFloatingService : Service(), Player.Listener {
     private fun initListeners(view: LayoutPlayer1Binding) {
         view.stopBtn.setOnClickListener { stopService() }
 
-        view.player.setControllerVisibilityListener { visibility ->
-            view.stopBtn.visibility = visibility
-        }
+        view.player.setControllerVisibilityListener(
+            StyledPlayerView.ControllerVisibilityListener { visibility ->
+                view.stopBtn.visibility = visibility
+            }
+        )
     }
 
     private fun setPlayer(view: LayoutPlayer1Binding) {
@@ -75,7 +100,11 @@ class VideoFloatingService : Service(), Player.Listener {
         flags: Int,
         startId: Int
     ): Int {
-        val item = intent?.extras?.get(EXTRA_ITEM) as VideoItem? ?: return START_STICKY
+        val item = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.extras?.getParcelable(EXTRA_ITEM, VideoItem::class.java)
+        } else {
+            intent?.extras?.getParcelable(EXTRA_ITEM) as VideoItem?
+        } ?: return START_STICKY
 
         if (floatingRef == null) floatingRef = showPopupWindow(
             context = this,
@@ -102,13 +131,18 @@ class VideoFloatingService : Service(), Player.Listener {
     override fun onVideoSizeChanged(videoSize: VideoSize) {
         val fRef = floatingRef ?: return
 
-        // @ref {https://eikhart.com/blog/aspect-ratio-calculator}
         val aspectRatio = videoSize.width.toFloat() / videoSize.height
         fRef.params.height = (fRef.params.width / aspectRatio).toInt()
         fRef.updateView()
     }
+
     private fun stopService() {
-        stopForeground(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
+
         stopSelf()
     }
 
@@ -116,10 +150,6 @@ class VideoFloatingService : Service(), Player.Listener {
         streams: List<Stream>,
         subtitles: List<Subtitle>
     ) {
-        val exoMediaSourceHelper = (ExoMediaSourceHelper(context = this) { mediaItem ->
-            mediaItem.localConfiguration?.tag as Stream
-        })
-
         val mediaItems = streams.map { stream ->
             MediaItem.Builder().setUri(stream.uri).setTag(stream).build()
         }
@@ -182,9 +212,6 @@ class VideoFloatingService : Service(), Player.Listener {
 
         private const val EXTRA_ITEM = "extra_item"
 
-        private const val MAX_WIDTH_DP = 350
-        private const val MAX_HEIGHT_DP = 196
-
         fun play(
             context: Context,
             videoItem: VideoItem
@@ -232,15 +259,17 @@ class VideoFloatingService : Service(), Player.Listener {
         private fun createPopupWindowLayoutParams(
             context: Context,
             layoutFlag: Int
-        ): WindowManager.LayoutParams = WindowManager.LayoutParams(
-            convertDpToPixel(context, MAX_WIDTH_DP).toInt(),
-            convertDpToPixel(context, MAX_HEIGHT_DP).toInt(),
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            x = 0
-            y = 100
+        ): WindowManager.LayoutParams {
+            return WindowManager.LayoutParams(
+                context.resources.getDimension(R.dimen.floating_video_max_window_width).toInt(),
+                context.resources.getDimension(R.dimen.floating_video_max_window_height).toInt(),
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                x = 0
+                y = 100
+            }
         }
 
         @SuppressLint("ClickableViewAccessibility")
@@ -257,7 +286,6 @@ class VideoFloatingService : Service(), Player.Listener {
 
             containerView.dispatchTouchListener = { event ->
                 when (event?.action) {
-
                     MotionEvent.ACTION_DOWN -> {
                         initialX = params.x
                         initialY = params.y
@@ -277,8 +305,5 @@ class VideoFloatingService : Service(), Player.Listener {
                 }
             }
         }
-
-        private fun convertDpToPixel(context: Context, dp: Int): Float =
-            dp * (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
     }
 }

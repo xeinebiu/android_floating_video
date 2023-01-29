@@ -2,9 +2,11 @@ package com.xeinebiu.demo.popup_player
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.xeinebiu.floating.video.VideoFloatingService
 import com.xeinebiu.floating.video.model.Stream
@@ -12,6 +14,10 @@ import com.xeinebiu.floating.video.model.Subtitle
 import com.xeinebiu.floating.video.model.VideoItem
 
 class MainActivity : AppCompatActivity() {
+    private val overlayPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,19 +26,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun playVideo(view: View) {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
 
         if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivityForResult(intent, PERMISSION_DRAW_OVER_OTHER_APP)
+            askForDrawOverlayPermission()
             return
         }
 
         val stream = Stream(
-            Uri.parse("https://thepaciellogroup.github.io/AT-browser-tests/video/ElephantsDream.mp4"),
+            Uri.parse("https://sample-videos.com/video123/mp4/240/big_buck_bunny_240p_30mb.mp4"),
             HashMap()
         )
 
@@ -49,7 +51,16 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    companion object {
-        private const val PERMISSION_DRAW_OVER_OTHER_APP = 1000
+    private fun askForDrawOverlayPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)) {
+            return
+        }
+
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+
+        overlayPermissionLauncher.launch(intent)
     }
 }
