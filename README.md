@@ -21,7 +21,7 @@ Add it in your root build.gradle at the end of repositories:
 Step 2. Add the dependency
 
 	dependencies {
-            implementation 'com.github.xeinebiu:android_floating_video:1.4.0'
+            implementation 'com.github.xeinebiu:android_floating_video:1.5.0'
 	}
 
 ---
@@ -71,7 +71,8 @@ VideoFloatingService.play(
 ```
 
 ### Change logs
-
+    1.5.0
+        - Update dependencies
     1.4.0
         - Upgrade Gradle Plugin
         - Play the stream which matches the window size by default

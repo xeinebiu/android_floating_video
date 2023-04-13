@@ -15,7 +15,7 @@ import com.xeinebiu.floating.video.model.VideoItem
 
 class MainActivity : AppCompatActivity() {
     private val overlayPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
+        ActivityResultContracts.StartActivityForResult(),
     ) {
     }
 
@@ -35,19 +35,19 @@ class MainActivity : AppCompatActivity() {
 
         val stream = Stream(
             Uri.parse("https://sample-videos.com/video123/mp4/240/big_buck_bunny_240p_30mb.mp4"),
-            HashMap()
+            HashMap(),
         )
 
         val subtitle = Subtitle(
             Uri.parse("https://thepaciellogroup.github.io/AT-browser-tests/video/subtitles-en.vtt"),
             "text/vtt",
             "English",
-            HashMap()
+            HashMap(),
         )
 
         VideoFloatingService.play(
             this,
-            VideoItem("demo", listOf(stream), listOf(subtitle))
+            VideoItem("demo", listOf(stream), listOf(subtitle)),
         )
     }
 
@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
 
         val intent = Intent(
             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:$packageName")
+            Uri.parse("package:$packageName"),
         )
 
         overlayPermissionLauncher.launch(intent)

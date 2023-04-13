@@ -20,11 +20,11 @@ import com.xeinebiu.floating.video.model.Subtitle
 
 internal class ExoMediaSourceHelper(
     private val context: Context,
-    private val streamRetriever: (MediaItem) -> Stream
+    private val streamRetriever: (MediaItem) -> Stream,
 ) {
     fun createMergingMediaSource(
         mediaItems: List<MediaItem>,
-        subtitles: List<Subtitle>
+        subtitles: List<Subtitle>,
     ): MergingMediaSource {
         val sources = mutableListOf<MediaSource>()
 
@@ -40,7 +40,7 @@ internal class ExoMediaSourceHelper(
     private fun insertSubtitles(subtitles: List<Subtitle>) = subtitles.map {
         val dataSource = buildDataSourceFactory(
             context = context,
-            headers = it.headers
+            headers = it.headers,
         )
 
         val subtitle = MediaItem
@@ -68,7 +68,7 @@ internal class ExoMediaSourceHelper(
 
     private fun buildDataSourceFactory(
         context: Context,
-        headers: Map<String, String>?
+        headers: Map<String, String>?,
     ): () -> DefaultDataSource {
         return {
             val defaultHttpDataSource = DefaultHttpDataSource
@@ -85,7 +85,7 @@ internal class ExoMediaSourceHelper(
 
     private fun buildMediaSourceFactory(
         factory: DataSource.Factory,
-        uri: Uri
+        uri: Uri,
     ): MediaSource.Factory = when (val type = Util.inferContentType(uri)) {
         C.TYPE_SS -> SsMediaSource.Factory(factory)
 

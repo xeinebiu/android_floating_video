@@ -52,7 +52,7 @@ class VideoFloatingService : Service(), Player.Listener {
                 .Parameters
                 .Builder(this)
                 .setMaxVideoSize(maxWidth, maxHeight)
-                .build()
+                .build(),
         )
 
         ExoPlayer
@@ -71,7 +71,7 @@ class VideoFloatingService : Service(), Player.Listener {
 
         startForeground(
             SERVICE_CODE,
-            createNotification().build()
+            createNotification().build(),
         )
 
         setPlayer(viewBinding)
@@ -85,7 +85,7 @@ class VideoFloatingService : Service(), Player.Listener {
         view.player.setControllerVisibilityListener(
             StyledPlayerView.ControllerVisibilityListener { visibility ->
                 view.stopBtn.visibility = visibility
-            }
+            },
         )
     }
 
@@ -98,7 +98,7 @@ class VideoFloatingService : Service(), Player.Listener {
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
-        startId: Int
+        startId: Int,
     ): Int {
         val item = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent?.extras?.getParcelable(EXTRA_ITEM, VideoItem::class.java)
@@ -106,15 +106,17 @@ class VideoFloatingService : Service(), Player.Listener {
             intent?.extras?.getParcelable(EXTRA_ITEM) as VideoItem?
         } ?: return START_STICKY
 
-        if (floatingRef == null) floatingRef = showPopupWindow(
-            context = this,
-            windowManager = windowManager,
-            container = viewBinding.root
-        )
+        if (floatingRef == null) {
+            floatingRef = showPopupWindow(
+                context = this,
+                windowManager = windowManager,
+                container = viewBinding.root,
+            )
+        }
 
         play(
             streams = item.streams,
-            subtitles = item.subtitles
+            subtitles = item.subtitles,
         )
 
         return START_STICKY
@@ -148,7 +150,7 @@ class VideoFloatingService : Service(), Player.Listener {
 
     private fun play(
         streams: List<Stream>,
-        subtitles: List<Subtitle>
+        subtitles: List<Subtitle>,
     ) {
         val mediaItems = streams.map { stream ->
             MediaItem.Builder().setUri(stream.uri).setTag(stream).build()
@@ -156,7 +158,7 @@ class VideoFloatingService : Service(), Player.Listener {
 
         val mediaSource = exoMediaSourceHelper.createMergingMediaSource(
             mediaItems,
-            subtitles
+            subtitles,
         )
 
         player.let {
@@ -170,7 +172,7 @@ class VideoFloatingService : Service(), Player.Listener {
 
     private fun createNotification(): NotificationCompat.Builder {
         val notificationManager = getSystemService(
-            Context.NOTIFICATION_SERVICE
+            Context.NOTIFICATION_SERVICE,
         ) as NotificationManager
 
         val builder = NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
@@ -183,7 +185,7 @@ class VideoFloatingService : Service(), Player.Listener {
             val channel = NotificationChannel(
                 SERVICE_CHANNEL_ID,
                 SERVICE_CHANNEL_ID,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_DEFAULT,
             )
             channel.setSound(null, null)
 
@@ -198,7 +200,7 @@ class VideoFloatingService : Service(), Player.Listener {
     private class FloatingRef(
         private val windowManager: WindowManager,
         private val container: XFrameLayout,
-        val params: WindowManager.LayoutParams
+        val params: WindowManager.LayoutParams,
     ) {
         fun updateView(): Unit = windowManager.updateViewLayout(container, params)
     }
@@ -214,7 +216,7 @@ class VideoFloatingService : Service(), Player.Listener {
 
         fun play(
             context: Context,
-            videoItem: VideoItem
+            videoItem: VideoItem,
         ) {
             val intent = Intent(context, VideoFloatingService::class.java).also {
                 it.putExtra(EXTRA_ITEM, videoItem)
@@ -226,19 +228,19 @@ class VideoFloatingService : Service(), Player.Listener {
         private fun showPopupWindow(
             context: Context,
             windowManager: WindowManager,
-            container: XFrameLayout
+            container: XFrameLayout,
         ): FloatingRef {
             val layoutFlag = getWindowLayoutFlag()
 
             val params = createPopupWindowLayoutParams(
                 context = context,
-                layoutFlag = layoutFlag
+                layoutFlag = layoutFlag,
             )
 
             makeDraggable(
                 windowManager = windowManager,
                 containerView = container,
-                params = params
+                params = params,
             )
 
             windowManager.addView(container, params)
@@ -246,7 +248,7 @@ class VideoFloatingService : Service(), Player.Listener {
             return FloatingRef(
                 windowManager = windowManager,
                 container = container,
-                params = params
+                params = params,
             )
         }
 
@@ -258,14 +260,14 @@ class VideoFloatingService : Service(), Player.Listener {
 
         private fun createPopupWindowLayoutParams(
             context: Context,
-            layoutFlag: Int
+            layoutFlag: Int,
         ): WindowManager.LayoutParams {
             return WindowManager.LayoutParams(
                 context.resources.getDimension(R.dimen.floating_video_max_window_width).toInt(),
                 context.resources.getDimension(R.dimen.floating_video_max_window_height).toInt(),
                 layoutFlag,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
+                PixelFormat.TRANSLUCENT,
             ).apply {
                 x = 0
                 y = 100
@@ -276,7 +278,7 @@ class VideoFloatingService : Service(), Player.Listener {
         private fun makeDraggable(
             windowManager: WindowManager,
             containerView: XFrameLayout,
-            params: WindowManager.LayoutParams
+            params: WindowManager.LayoutParams,
         ) {
             var initialTouchX = 0f
             var initialTouchY = 0f
